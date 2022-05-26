@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js"
 import { programs } from "@metaplex/js"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { getNFTsByOwner } from "utils/nfts"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
 
@@ -19,44 +19,41 @@ export type NFT = {
     properties: {
       files: Array<string>
       category: string
-      creators: Array<{
-        pubKey: string
-        address: string
-      }>
+      creators: Array<string>
     }
     seller_fee_basis_points: number
   }
 }
 
 const useWalletNFTs = (creators: string[] = []) => {
-  const { connection } = useConnection()
-  const { publicKey } = useWallet()
-  const [walletNFTs, setWalletNFTs] = useState<Array<NFT> | null>(null)
-
-  const fetchNFTs = useCallback(async () => {
-    console.log("[useWalletNFTs] Fetching NFTs...")
-    const NFTs = await getNFTsByOwner(publicKey, connection)
-
-    const filtered = creators
-      ? NFTs.filter((NFT) => {
-          const obj = NFT.onchainMetadata?.data?.creators?.find((value) => {
-            return creators.indexOf(value.address) !== -1
+    const { connection } = useConnection()
+    const { publicKey } = useWallet()
+    const [walletNFTs, setWalletNFTs] = useState<Array<NFT> | null>(null)
+  
+    const fetchNFTs = useCallback(async () => {
+      console.log("[useWalletNFTs] Fetching NFTs...")
+      const NFTs = await getNFTsByOwner(publicKey, connection)
+  
+      const filtered = creators
+        ? NFTs.filter((NFT) => {
+            const obj = NFT.onchainMetadata?.data?.creators?.find((value) => {
+              return creators.indexOf(value.address) !== -1
+            })
+  
+            return obj
           })
+        : NFTs
+  
+      setWalletNFTs(filtered)
+    }, [connection, publicKey])
 
-          return obj
-        })
-      : NFTs
 
-    setWalletNFTs(filtered)
-  }, [connection, publicKey])
+     if (publicKey) {
+       fetchNFTs()
+     }
+    }, [publicKey])
 
-  useEffect(() => {
-    if (publicKey) {
-      fetchNFTs()
-    }
-  }, [publicKey])
-
-  return { walletNFTs, fetchNFTs }
+  return { walletNFTs }
 }
 
 export default useWalletNFTs
